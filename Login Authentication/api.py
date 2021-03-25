@@ -1,20 +1,11 @@
 from flask import Flask, request, jsonify, make_response
-from flask_restx import Api,Resource
-from models import  User
+from flask_restx import Api, Resource
+from models import User
 from db import db
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
 from functools import wraps
-from flask_marshmallow import Marshmallow
-
-ma = Marshmallow()
-
-class school(ma.Schema):
-
-    class Meta:
-     fields = ('id','name','password')
-
 
 app = Flask(__name__)
 api = Api(app);
@@ -40,7 +31,7 @@ def token_required(f):
             print(current_user.admin)
             print(current_user.name)
         except :
-            return  jsonify({'message'})
+            return jsonify({'message':'Token is invalid!'})
         return f(current_user=current_user, *args, **kwargs)
     return decorated
 
@@ -65,7 +56,7 @@ class Users(Resource):
     @token_required
     def post(self,current_user):
         if not current_user.admin:
-            return jsonify({'message': 'Cant perform this function!'})
+            return jsonify({'message': 'Cannot perform this function!'})
         data = request.get_json()
         hashed_password = generate_password_hash(data['password'],method='sha256')
         new_user = User(name=data['name'], password=hashed_password, admin=False)
@@ -122,8 +113,8 @@ class Login(Resource):
             return make_response('User not found!')
 
         if check_password_hash(user.password, auth.password):
-            token = jwt.encode({'id' : user.id, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
-            return jsonify({"token" : token.decode('UTF-8')})
+            token = jwt.encode({'id': user.id, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])
+            return jsonify({"token": token.decode('UTF-8')})
         if not auth.password:
             return make_response('Could not verify, please provide the password')
         if (user.password != auth.password):
